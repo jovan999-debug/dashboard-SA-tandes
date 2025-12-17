@@ -5,7 +5,10 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # --- 1. KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Dashboard Teknisi & Performansi", layout="wide")
+st.set_page_config(
+    page_title="Dashboard Teknisi & Performansi", 
+    layout="wide",
+    page_icon="🚀")
 
 # ==========================================
 #  KONFIGURASI GOOGLE SHEET
