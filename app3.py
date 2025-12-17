@@ -1,0 +1,455 @@
+import plotly.express as px
+import streamlit as st
+import pandas as pd
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# --- 1. KONFIGURASI HALAMAN ---
+st.set_page_config(page_title="Dashboard Teknisi & Performansi", layout="wide")
+
+# ==========================================
+#  KONFIGURASI GOOGLE SHEET
+# ==========================================
+
+# 1. ID SPREADSHEET UTAMA (Data Teknisi, IOAN, PSB Utama)
+MAIN_SPREADSHEET_ID = "1mSHW1FQG19MTRD6nbqFdrP_6klm_uUD-XhWIHEaup_o"
+
+# 2. ID SPREADSHEET KEDUA (DATA MENTAH HARIAN PSB)
+# >>> MASUKKAN ID FILE GOOGLE SHEET 'DAILY REPORT' DISINI <<<
+SECOND_SPREADSHEET_ID = "19l9TLgZb8kjNnq3wbxG2U5slNphOQhNbBy4KK3zoXnA" 
+
+# 3. NAMA TAB
+TAB_NAME_TEKNISI = "ALL TEKNISI TNS"
+TAB_NAME_IOAN    = "CEK IOAN"
+TAB_NAME_PSB     = "CEK PSB"
+TAB_NAME_B2B     = "Data B2B"
+
+# Tab di File Kedua (DATA MENTAH)
+# Pastikan ini nama tab yang isinya ribuan baris data mentah, BUKAN tab pivot.
+TAB_NAME_RAW_DATA = "BANK DATA ALL 2025" # Ganti dengan nama tab data mentah Anda (misal: "DESEMBER 2025")
+
+# ==========================================
+
+# --- 2. FUNGSI KONEKSI (UPDATE: AMAN UNTUK DEPLOY) ---
+@st.cache_data(ttl=60)
+def load_data(sheet_id, nama_tab_spesifik, range_cell=None):
+    try:
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        
+        # --- LOGIKA KONEKSI BARU (CERDAS) ---
+        # Cek apakah ada Secrets di Streamlit Cloud?
+        if "gcp_service_account" in st.secrets:
+            # Jika Online: Baca dari Secrets Streamlit
+            creds_dict = st.secrets["gcp_service_account"]
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        else:
+            # Jika Offline (Laptop): Baca file json biasa
+            # Pastikan file kredensial.json ada di folder laptop Anda
+            creds = ServiceAccountCredentials.from_json_keyfile_name("kredensial.json", scope)
+        # ------------------------------------
+
+        client = gspread.authorize(creds)
+        sh = client.open_by_key(sheet_id)
+        worksheet = sh.worksheet(nama_tab_spesifik)
+
+        if range_cell:
+            data = worksheet.get(range_cell)
+        else:
+            data = worksheet.get_all_values()
+        
+        if len(data) > 0:
+            # [FIX Duplikat Kolom]
+            headers = data[0]
+            seen = {}
+            new_headers = []
+            for h in headers:
+                h = str(h).strip() 
+                if h in seen:
+                    seen[h] += 1
+                    new_headers.append(f"{h}_{seen[h]}")
+                else:
+                    seen[h] = 0
+                    new_headers.append(h)
+            
+            df = pd.DataFrame(data[1:], columns=new_headers)
+            
+            # [FIX Convert Angka]
+            for col in df.columns:
+                try:
+                    if df[col].astype(str).str.isnumeric().all():
+                        df[col] = pd.to_numeric(df[col], errors='ignore')
+                except:
+                    pass
+
+            return df
+        else:
+            return pd.DataFrame()
+
+    except Exception as e:
+        # Tampilkan error tapi jangan bocorkan rahasia
+        st.error(f"❌ Terjadi Kesalahan Koneksi. Cek Secrets/File JSON.")
+        return pd.DataFrame()
+
+# --- 3. FUNGSI PEWARNAAN ---
+def highlight_dynamic(row, nama_kolom):
+    try:
+        nilai = float(row[nama_kolom])
+        if nilai < 100:
+            return ['background-color: #ffcccc; color: black'] * len(row)
+        else:
+            return [''] * len(row)
+    except:
+        return [''] * len(row)
+
+# --- 4. NAVIGASI ---
+if 'page' not in st.session_state:
+    st.session_state.page = 'landing'
+
+def go_to(page_name):
+    st.session_state.page = page_name
+
+# --- 5. HALAMAN: LANDING PAGE ---
+def show_landing_page():
+    st.markdown("<h1 style='text-align: center;'>Monitoring Dashboard Peformansi SA TANDES</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.info("👥 DATA PEGAWAI")
+        if st.button("DAFTAR TEKNISI", use_container_width=True):
+            go_to('teknisi_menu_pilihan')
+            st.rerun()
+            
+    with col2:
+        st.success("📊 DATA IOAN")
+        if st.button("PERFORMANSI IOAN", use_container_width=True):
+            go_to('ioan')
+            st.rerun()
+            
+    with col3:
+        st.warning("📈 DATA PSB")
+        if st.button("PEFORMANSI PSB", use_container_width=True):
+            go_to('psb_menu_pilihan')
+            st.rerun()
+            
+    with col4:
+        st.error("🏢 DATA B2B")
+        if st.button("PERFORMANSI B2B", use_container_width=True):
+            go_to('b2b')
+            st.rerun()
+
+# --- 6. HALAMAN: MENU PILIHAN TEKNISI ---
+def show_teknisi_menu_pilihan():
+    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: go_to('landing'))
+    st.title("Pilih Kategori Teknisi")
+    
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if st.button("TEKNISI IOAN", use_container_width=True):
+            go_to('teknisi_ioan_detail')
+            st.rerun()
+    with c2:
+        if st.button("TEKNISI PSB", use_container_width=True):
+            go_to('teknisi_psb_detail')
+            st.rerun()
+    with c3:
+        if st.button("TEKNISI B2B", use_container_width=True):
+            go_to('teknisi_b2b_detail')
+            st.rerun()
+
+# --- 7. HALAMAN: MENU PILIHAN PSB ---
+def show_psb_menu_pilihan():
+    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: go_to('landing'))
+    st.title("Pilih Dashboard PSB")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.info("PSB B2C")
+        if st.button("Dashboard KPI IMBAL JASA PROVISIONING SA TANDES", use_container_width=True):
+            go_to('psb_utama')
+            st.rerun()
+            
+    with c2:
+        st.warning("ANALISA DATA PS PSB")
+        if st.button("Dashboard Data PS PSB", use_container_width=True):
+            go_to('psb_pivot_interaktif')
+            st.rerun()
+
+# --- 8. HALAMAN: DETAIL TEKNISI ---
+def show_teknisi_detail(jenis, kolom_start, kolom_end):
+    st.button("⬅️ Kembali ke Pilihan Teknisi", on_click=lambda: go_to('teknisi_menu_pilihan'))
+    st.title(f"Data Teknisi - {jenis}")
+    
+    with st.spinner('Mengambil data...'):
+        df_full = load_data(MAIN_SPREADSHEET_ID, TAB_NAME_TEKNISI)
+    
+    if not df_full.empty:
+        try:
+            df_filtered = df_full.iloc[:, kolom_start:kolom_end]
+            df_filtered = df_filtered[df_filtered.iloc[:, 0].astype(str).str.strip() != ""]
+            st.dataframe(df_filtered, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Gagal memotong kolom: {e}")
+    else:
+        st.warning("Data teknisi kosong.")
+
+# --- 9. HALAMAN: DASHBOARD STANDAR ---
+def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_kunci="SCORE", back_to='landing'):
+    if back_to == 'landing':
+        st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: go_to('landing'))
+    elif back_to == 'psb_menu':
+        st.button("⬅️ Kembali ke Pilihan PSB", on_click=lambda: go_to('psb_menu_pilihan'))
+
+    st.title(f"Dashboard {judul}")
+    
+    with st.spinner('Sedang memuat data...'):
+        df = load_data(target_sheet_id, nama_tab, range_khusus)
+
+    if not df.empty:
+        if kolom_kunci in df.columns:
+            df_display = df.copy() 
+            df_display[kolom_kunci] = df_display[kolom_kunci].astype(str).str.replace(',', '.', regex=False)
+            df_display[kolom_kunci] = pd.to_numeric(df_display[kolom_kunci], errors='coerce').fillna(0)
+            
+            styled_df = df_display.style.apply(lambda row: highlight_dynamic(row, kolom_kunci), axis=1)
+            styled_df = styled_df.format({kolom_kunci: "{:.2f}"})
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        else:
+            st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.warning(f"Data tidak ditemukan di tab: {nama_tab}")
+
+# --- 10. HALAMAN BARU: PIVOT TABLE (FINAL + GRAFIK INTERAKTIF) ---
+def show_interactive_pivot():
+    st.button("⬅️ Kembali ke Pilihan PSB", on_click=lambda: go_to('psb_menu_pilihan'))
+    st.title("🔧 Analisa Data PS PSB")
+    
+    # 1. Load Data Mentah
+    with st.spinner('Mengambil data mentah harian...'):
+        df = load_data(SECOND_SPREADSHEET_ID, TAB_NAME_RAW_DATA)
+        
+    if not df.empty:
+        # [FIX 1] Hapus Kolom Duplikat
+        df = df.loc[:, ~df.columns.duplicated()]
+        
+        # [FIX 2] Konversi Angka
+        for col in df.columns:
+            try:
+                if df[col].astype(str).str.isnumeric().all():
+                    df[col] = pd.to_numeric(df[col], errors='ignore')
+            except:
+                pass
+
+        all_columns = df.columns.tolist()
+        
+        # --- BAGIAN FILTER DATA ---
+        with st.expander("🔎 FILTER DATA (Klik untuk menyaring data)", expanded=False):
+            c_filter1, c_filter2 = st.columns(2)
+            with c_filter1:
+                kolom_filter = st.selectbox("Pilih Kolom untuk difilter:", ["- Tidak Ada -"] + all_columns)
+            
+            if kolom_filter != "- Tidak Ada -":
+                with c_filter2:
+                    unique_values = df[kolom_filter].unique().tolist()
+                    # Filter Kosong di Awal (Opt-in)
+                    selected_values = st.multiselect(
+                        f"Pilih isi '{kolom_filter}':", 
+                        unique_values
+                    )
+                
+                if selected_values:
+                    df = df[df[kolom_filter].isin(selected_values)]
+                    st.success(f"✅ Data tersaring! Menampilkan {len(df)} baris.")
+                else:
+                    st.info("👈 Silakan pilih data di kotak di atas untuk memunculkan hasil.")
+                    df = pd.DataFrame() # Kosongkan biar gak berat
+
+        st.markdown("---")
+        
+        if not df.empty:
+            st.write("Silakan atur tampilan Pivot Table:")
+            
+            # --- PENGATURAN PIVOT ---
+            with st.expander("⚙️ PENGATURAN PIVOT", expanded=True):
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.markdown("**1. Pilih Baris (Rows)**")
+                    rows = st.multiselect("Pilih kolom untuk Baris:", all_columns, default=all_columns[0] if len(all_columns)>0 else None)
+                    
+                with col2:
+                    st.markdown("**2. Pilih Kolom (Cols - Opsional)**")
+                    cols = st.multiselect("Pilih kolom untuk Kolom:", all_columns)
+                    
+                with col3:
+                    st.markdown("**3. Pilih Data Dihitung (Values)**")
+                    values = st.selectbox("Pilih data yg mau dihitung:", all_columns, index=1 if len(all_columns)>1 else 0)
+                    
+                with col4:
+                    st.markdown("**4. Jenis Hitungan**")
+                    agg_type = st.selectbox("Rumus:", ["count (Hitung Data)", "sum (Total Angka)", "mean (Rata-rata)", "min", "max"])
+                    
+                    agg_func = 'count'
+                    if "sum" in agg_type: agg_func = 'sum'
+                    elif "mean" in agg_type: agg_func = 'mean'
+                    elif "min" in agg_type: agg_func = 'min'
+                    elif "max" in agg_type: agg_func = 'max'
+
+            # --- PROSES PEMBUATAN ---
+            st.markdown("---")
+            if rows:
+                try:
+                    if agg_func != 'count':
+                        df[values] = pd.to_numeric(df[values], errors='coerce').fillna(0)
+
+                    # 1. BUAT PIVOT TABLE
+                    pivot_result = pd.pivot_table(
+                        df, 
+                        index=rows, 
+                        columns=cols if cols else None, 
+                        values=values, 
+                        aggfunc=agg_func,
+                        fill_value=0,
+                        margins=True, 
+                        margins_name='Grand Total'
+                    )
+
+                    # 2. LOGIKA SMART SORT (Tanggal & Bulan)
+                    def smart_sort_index(index_obj):
+                        try:
+                            labels = index_obj.astype(str).tolist()
+                            # A. Tanggal
+                            try:
+                                dates = pd.to_datetime(labels, dayfirst=True, errors='coerce')
+                                if dates.notna().sum() > len(dates) * 0.5: 
+                                    return dates.argsort()
+                            except: pass
+                            # B. Bulan
+                            bulan_map = {'JANUARI':1,'JAN':1,'FEBRUARI':2,'FEB':2,'MARET':3,'MAR':3,'APRIL':4,'APR':4,'MEI':5,'MAY':5,'JUNI':6,'JUN':6,'JULI':7,'JUL':7,'AGUSTUS':8,'AGT':8,'SEPTEMBER':9,'SEP':9,'OKTOBER':10,'OKT':10,'NOVEMBER':11,'NOV':11,'DESEMBER':12,'DES':12,'GRAND TOTAL':999}
+                            sample = labels[0].strip().upper().split(' ')[0]
+                            if sample in bulan_map:
+                                rank_list = [bulan_map.get(i.strip().upper().split(' ')[0], 50) for i in labels]
+                                return pd.Series(rank_list).argsort()
+                            return index_obj.argsort()
+                        except: return range(len(index_obj))
+
+                    # Terapkan Sorting
+                    if cols:
+                        is_grand_total = pivot_result.columns == 'Grand Total'
+                        if not is_grand_total.all():
+                            data_cols = pivot_result.columns[~is_grand_total]
+                            total_col = pivot_result.columns[is_grand_total]
+                            pivot_result = pivot_result[data_cols[smart_sort_index(data_cols)].tolist() + total_col.tolist()]
+
+                    if 'Grand Total' in pivot_result.index:
+                        data_rows = pivot_result.index.drop('Grand Total')
+                        pivot_result = pivot_result.reindex(data_rows[smart_sort_index(data_rows)].tolist() + ['Grand Total'])
+
+                    # 3. TAMPILKAN TABEL
+                    st.subheader(f"📊 Hasil Analisa: {agg_func.upper()} of {values}")
+                    st.dataframe(pivot_result, use_container_width=True)
+
+                    # ---------------------------------------------------------
+                    # >>> BAGIAN BARU: VISUALISASI GRAFIK (CHART) <<<
+                    # ---------------------------------------------------------
+                    st.markdown("### 📈 Visualisasi Grafik")
+                    
+                    # 1. Bersihkan Data untuk Grafik (Buang Grand Total)
+                    # Kita pakai .copy() agar tabel asli di atas tidak ikut hilang
+                    chart_df = pivot_result.copy()
+                    
+                    # Buang Baris 'Grand Total'
+                    if 'Grand Total' in chart_df.index:
+                        chart_df = chart_df.drop('Grand Total', axis=0)
+                    
+                    # Buang Kolom 'Grand Total'
+                    if 'Grand Total' in chart_df.columns:
+                        chart_df = chart_df.drop(columns=['Grand Total'])
+                        
+                    # 2. Buat Grafik menggunakan Plotly Express
+                    # Jika user memilih Kolom (Cols), grafik akan berwarna-warni (Stacked Bar)
+                    if not chart_df.empty:
+                        # Reset index agar 'Bulan' atau 'Nama' bisa dibaca sebagai sumbu X
+                        chart_data_clean = chart_df.reset_index()
+                        
+                        # Nama kolom index (misal: "BULAN (*)")
+                        x_axis_name = chart_data_clean.columns[0]
+                        
+                        # Jika pivot sederhana (tanpa kolom tambahan)
+                        if len(chart_df.columns) == 1:
+                            y_axis_name = chart_df.columns[0]
+                            fig = px.bar(
+                                chart_data_clean, 
+                                x=x_axis_name, 
+                                y=y_axis_name,
+                                title=f"Grafik {agg_func} {values} per {x_axis_name}",
+                                text_auto=True, # Menampilkan angka di batang
+                                color=y_axis_name # Memberi gradasi warna cantik
+                            )
+                        else:
+                            # Jika pivot kompleks (ada kolom misal: Status)
+                            # Kita harus 'melt' (cairkan) data supaya bisa dibaca Plotly
+                            chart_melted = chart_data_clean.melt(id_vars=x_axis_name, var_name='Kategori', value_name='Jumlah')
+                            
+                            fig = px.bar(
+                                chart_melted,
+                                x=x_axis_name,
+                                y='Jumlah',
+                                color='Kategori', # Warna beda tiap kategori
+                                title=f"Grafik {agg_func} {values} per {x_axis_name}",
+                                text_auto=True,
+                                barmode='group' # 'group' = jejer samping, 'stack' = tumpuk
+                            )
+                        
+                        # Tampilkan Grafik
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.warning("Data tidak cukup untuk membuat grafik.")
+
+                except Exception as e:
+                    st.error(f"Gagal memproses data: {e}")
+            else:
+                st.info("👈 Silakan pilih minimal satu 'Baris (Rows)' di menu pengaturan.")
+        else:
+            if kolom_filter != "- Tidak Ada -":
+                st.warning("⚠️ Belum ada data yang dipilih.")
+            else:
+                st.warning("Data kosong.")
+    else:
+        st.warning("Data kosong atau ID Spreadsheet salah.")
+
+# --- 11. ROUTING UTAMA ---
+if st.session_state.page == 'landing':
+    show_landing_page()
+
+# Routing Teknisi
+elif st.session_state.page == 'teknisi_menu_pilihan':
+    show_teknisi_menu_pilihan()
+elif st.session_state.page == 'teknisi_ioan_detail':
+    show_teknisi_detail("IOAN", 3, 6)
+elif st.session_state.page == 'teknisi_psb_detail':
+    show_teknisi_detail("PSB", 6, 9) 
+elif st.session_state.page == 'teknisi_b2b_detail':
+    show_teknisi_detail("B2B", 0, 3) 
+
+# Routing PSB
+elif st.session_state.page == 'psb_menu_pilihan':
+    show_psb_menu_pilihan()
+
+elif st.session_state.page == 'psb_utama':
+    show_dashboard(
+        "KPI IMBAL JASA PROVISIONING SA TANDES", TAB_NAME_PSB, MAIN_SPREADSHEET_ID, 
+        range_khusus="A7:F15", kolom_kunci="ACHIEVEMENT", back_to='psb_menu'
+    )
+
+elif st.session_state.page == 'psb_pivot_interaktif':
+    # Ini fungsi baru untuk pivot table interaktif
+    show_interactive_pivot()
+
+# Routing Lain
+elif st.session_state.page == 'ioan':
+    show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
+elif st.session_state.page == 'b2b':
+    show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
