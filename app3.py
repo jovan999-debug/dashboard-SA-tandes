@@ -110,7 +110,7 @@ def go_to(page_name):
 
 # --- 5. HALAMAN: LANDING PAGE ---
 def show_landing_page():
-    st.markdown("<h1 style='text-align: center;'>Monitoring Dashboard Peformansi SA TANDES</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>Monitoring Dashboard Performansi SA TANDES</h1>", unsafe_allow_html=True)
     st.markdown("---")
     
     col1, col2, col3, col4 = st.columns(4)
@@ -129,7 +129,7 @@ def show_landing_page():
             
     with col3:
         st.warning("📈 DATA PSB")
-        if st.button("PEFORMANSI PSB", use_container_width=True):
+        if st.button("PERFORMANSI PSB", use_container_width=True):
             go_to('psb_menu_pilihan')
             st.rerun()
             
