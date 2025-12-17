@@ -1,14 +1,18 @@
-import plotly.express as px
 import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import plotly.express as px
+import re
+import os
+import json
 
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(
     page_title="Dashboard Teknisi & Performansi", 
     layout="wide",
-    page_icon="🚀")
+    page_icon="🚀"
+)
 
 # ==========================================
 #  KONFIGURASI GOOGLE SHEET
@@ -18,7 +22,6 @@ st.set_page_config(
 MAIN_SPREADSHEET_ID = "1mSHW1FQG19MTRD6nbqFdrP_6klm_uUD-XhWIHEaup_o"
 
 # 2. ID SPREADSHEET KEDUA (DATA MENTAH HARIAN PSB)
-# >>> MASUKKAN ID FILE GOOGLE SHEET 'DAILY REPORT' DISINI <<<
 SECOND_SPREADSHEET_ID = "19l9TLgZb8kjNnq3wbxG2U5slNphOQhNbBy4KK3zoXnA" 
 
 # 3. NAMA TAB
@@ -28,26 +31,47 @@ TAB_NAME_PSB     = "CEK PSB"
 TAB_NAME_B2B     = "Data B2B"
 
 # Tab di File Kedua (DATA MENTAH)
-# Pastikan ini nama tab yang isinya ribuan baris data mentah, BUKAN tab pivot.
-TAB_NAME_RAW_DATA = "BANK DATA ALL 2025" # Ganti dengan nama tab data mentah Anda (misal: "DESEMBER 2025")
+TAB_NAME_RAW_DATA = "BANK DATA ALL 2025" 
 
 # ==========================================
 
-# --- 2. FUNGSI KONEKSI (UPDATE: AMAN UNTUK DEPLOY) ---
+# --- FUNGSI TAMBAHAN: MEMBERSIHKAN NAMA KOLOM (_1, _2) ---
+def bersihkan_nama_kolom_display(df_input):
+    """
+    Mengubah nama kolom seperti 'NIK_1', 'NIK_2' menjadi 'NIK' saja
+    khusus untuk tampilan visual agar terlihat seragam.
+    """
+    df_display = df_input.copy()
+    new_column_names = {}
+    for col in df_display.columns:
+        # Cari kolom yang mengandung _angka di belakangnya
+        # Regex r'_\d+$' artinya: underscore diikuti angka di akhir kalimat
+        clean_name = re.sub(r'_\d+$', '', col)
+        new_column_names[col] = clean_name
+            
+    df_display = df_display.rename(columns=new_column_names)
+    return df_display
+
+# --- 2. FUNGSI KONEKSI (UPDATE: SUPPORT HF PUBLIC & STREAMLIT) ---
 @st.cache_data(ttl=60)
 def load_data(sheet_id, nama_tab_spesifik, range_cell=None):
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         
-        # --- LOGIKA KONEKSI BARU (CERDAS) ---
-        # Cek apakah ada Secrets di Streamlit Cloud?
-        if "gcp_service_account" in st.secrets:
-            # Jika Online: Baca dari Secrets Streamlit
+        # --- LOGIKA KONEKSI CERDAS (PRIORITAS KEAMANAN) ---
+        
+        # 1. Cek Environment Variable (Hugging Face Public)
+        if "GCP_JSON" in os.environ:
+            creds_dict = json.loads(os.environ["GCP_JSON"])
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+            
+        # 2. Cek Secrets (Streamlit Cloud / Hugging Face Private)
+        elif "gcp_service_account" in st.secrets:
             creds_dict = st.secrets["gcp_service_account"]
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+            
+        # 3. Cek File Lokal (Laptop Offline)
         else:
-            # Jika Offline (Laptop): Baca file json biasa
-            # Pastikan file kredensial.json ada di folder laptop Anda
             creds = ServiceAccountCredentials.from_json_keyfile_name("kredensial.json", scope)
         # ------------------------------------
 
@@ -61,7 +85,7 @@ def load_data(sheet_id, nama_tab_spesifik, range_cell=None):
             data = worksheet.get_all_values()
         
         if len(data) > 0:
-            # [FIX Duplikat Kolom]
+            # [FIX Duplikat Kolom agar Pandas tidak Error]
             headers = data[0]
             seen = {}
             new_headers = []
@@ -76,7 +100,7 @@ def load_data(sheet_id, nama_tab_spesifik, range_cell=None):
             
             df = pd.DataFrame(data[1:], columns=new_headers)
             
-            # [FIX Convert Angka]
+            # [FIX Convert Angka Otomatis]
             for col in df.columns:
                 try:
                     if df[col].astype(str).str.isnumeric().all():
@@ -89,8 +113,7 @@ def load_data(sheet_id, nama_tab_spesifik, range_cell=None):
             return pd.DataFrame()
 
     except Exception as e:
-        # Tampilkan error tapi jangan bocorkan rahasia
-        st.error(f"❌ Terjadi Kesalahan Koneksi. Cek Secrets/File JSON.")
+        st.error(f"❌ Terjadi Kesalahan Koneksi: {e}")
         return pd.DataFrame()
 
 # --- 3. FUNGSI PEWARNAAN ---
@@ -179,7 +202,7 @@ def show_psb_menu_pilihan():
             go_to('psb_pivot_interaktif')
             st.rerun()
 
-# --- 8. HALAMAN: DETAIL TEKNISI ---
+# --- 8. HALAMAN: DETAIL TEKNISI (DENGAN PEMBERSIH NAMA KOLOM) ---
 def show_teknisi_detail(jenis, kolom_start, kolom_end):
     st.button("⬅️ Kembali ke Pilihan Teknisi", on_click=lambda: go_to('teknisi_menu_pilihan'))
     st.title(f"Data Teknisi - {jenis}")
@@ -189,9 +212,18 @@ def show_teknisi_detail(jenis, kolom_start, kolom_end):
     
     if not df_full.empty:
         try:
+            # Potong kolom sesuai jenis teknisi
             df_filtered = df_full.iloc[:, kolom_start:kolom_end]
+            
+            # Hapus baris kosong
             df_filtered = df_filtered[df_filtered.iloc[:, 0].astype(str).str.strip() != ""]
-            st.dataframe(df_filtered, use_container_width=True, hide_index=True)
+            
+            # [BARU] Bersihkan Nama Kolom (Hapus _1, _2)
+            df_clean = bersihkan_nama_kolom_display(df_filtered)
+            
+            # Tampilkan tabel yang sudah bersih
+            st.dataframe(df_clean, use_container_width=True, hide_index=True)
+            
         except Exception as e:
             st.error(f"Gagal memotong kolom: {e}")
     else:
@@ -359,27 +391,18 @@ def show_interactive_pivot():
                     st.markdown("### 📈 Visualisasi Grafik")
                     
                     # 1. Bersihkan Data untuk Grafik (Buang Grand Total)
-                    # Kita pakai .copy() agar tabel asli di atas tidak ikut hilang
                     chart_df = pivot_result.copy()
                     
-                    # Buang Baris 'Grand Total'
                     if 'Grand Total' in chart_df.index:
                         chart_df = chart_df.drop('Grand Total', axis=0)
-                    
-                    # Buang Kolom 'Grand Total'
                     if 'Grand Total' in chart_df.columns:
                         chart_df = chart_df.drop(columns=['Grand Total'])
                         
                     # 2. Buat Grafik menggunakan Plotly Express
-                    # Jika user memilih Kolom (Cols), grafik akan berwarna-warni (Stacked Bar)
                     if not chart_df.empty:
-                        # Reset index agar 'Bulan' atau 'Nama' bisa dibaca sebagai sumbu X
                         chart_data_clean = chart_df.reset_index()
-                        
-                        # Nama kolom index (misal: "BULAN (*)")
                         x_axis_name = chart_data_clean.columns[0]
                         
-                        # Jika pivot sederhana (tanpa kolom tambahan)
                         if len(chart_df.columns) == 1:
                             y_axis_name = chart_df.columns[0]
                             fig = px.bar(
@@ -387,25 +410,21 @@ def show_interactive_pivot():
                                 x=x_axis_name, 
                                 y=y_axis_name,
                                 title=f"Grafik {agg_func} {values} per {x_axis_name}",
-                                text_auto=True, # Menampilkan angka di batang
-                                color=y_axis_name # Memberi gradasi warna cantik
+                                text_auto=True, 
+                                color=y_axis_name 
                             )
                         else:
-                            # Jika pivot kompleks (ada kolom misal: Status)
-                            # Kita harus 'melt' (cairkan) data supaya bisa dibaca Plotly
                             chart_melted = chart_data_clean.melt(id_vars=x_axis_name, var_name='Kategori', value_name='Jumlah')
-                            
                             fig = px.bar(
                                 chart_melted,
                                 x=x_axis_name,
                                 y='Jumlah',
-                                color='Kategori', # Warna beda tiap kategori
+                                color='Kategori', 
                                 title=f"Grafik {agg_func} {values} per {x_axis_name}",
                                 text_auto=True,
-                                barmode='group' # 'group' = jejer samping, 'stack' = tumpuk
+                                barmode='group' 
                             )
                         
-                        # Tampilkan Grafik
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.warning("Data tidak cukup untuk membuat grafik.")
