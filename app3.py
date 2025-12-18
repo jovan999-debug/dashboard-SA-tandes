@@ -303,26 +303,30 @@ def show_interactive_pivot():
         all_columns = df.columns.tolist()
         
         # --- BAGIAN FILTER DATA ---
-        with st.expander("🔎 FILTER DATA (Klik untuk menyaring data)", expanded=False):
-            c_filter1, c_filter2 = st.columns(2)
-            with c_filter1:
-                kolom_filter = st.selectbox("Pilih Kolom untuk difilter:", ["- Tidak Ada -"] + all_columns)
+        # --- FILTER PINDAH KE SIDEBAR (KIRI) ---
+        st.sidebar.markdown("### 🔎 Panel Filter Data")
+        st.sidebar.info("Gunakan menu ini untuk menyaring data.")
+        
+        # 1. Pilih Kolom Filter
+        kolom_filter = st.sidebar.selectbox("Pilih Kolom:", ["- Tidak Ada -"] + all_columns)
+        
+        # 2. Logika Filter
+        if kolom_filter != "- Tidak Ada -":
+            unique_values = df[kolom_filter].unique().tolist()
             
-            if kolom_filter != "- Tidak Ada -":
-                with c_filter2:
-                    unique_values = df[kolom_filter].unique().tolist()
-                    # Filter Kosong di Awal (Opt-in)
-                    selected_values = st.multiselect(
-                        f"Pilih isi '{kolom_filter}':", 
-                        unique_values
-                    )
-                
-                if selected_values:
-                    df = df[df[kolom_filter].isin(selected_values)]
-                    st.success(f"✅ Data tersaring! Menampilkan {len(df)} baris.")
-                else:
-                    st.info("👈 Silakan pilih data di kotak di atas untuk memunculkan hasil.")
-                    df = pd.DataFrame() # Kosongkan biar gak berat
+            # Multiselect di Sidebar
+            selected_values = st.sidebar.multiselect(
+                f"Pilih isi '{kolom_filter}':", 
+                unique_values
+            )
+            
+            if selected_values:
+                df = df[df[kolom_filter].isin(selected_values)]
+                # Tampilkan info jumlah data di sidebar
+                st.sidebar.success(f"✅ {len(df)} baris data ditemukan.")
+            else:
+                st.warning(f"⚠️ Anda memilih filter '{kolom_filter}' tapi belum memilih isinya di Sidebar sebelah kiri.")
+                df = pd.DataFrame() # Kosongkan agar user fokus memilih dulu
 
         st.markdown("---")
         
@@ -516,6 +520,7 @@ elif st.session_state.page == 'ioan':
 elif st.session_state.page == 'b2b':
 
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
