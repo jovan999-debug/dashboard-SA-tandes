@@ -471,7 +471,19 @@ def show_interactive_pivot():
                             
                     else:
                         st.warning("Data tidak cukup untuk membuat grafik.")
+except Exception as e:
+                    st.error(f"Gagal memproses data: {e}")
+            else:
+                st.info("👈 Silakan pilih minimal satu 'Baris (Rows)' di menu pengaturan.")
+        else:
+            if kolom_filter != "- Tidak Ada -":
+                st.warning("⚠️ Belum ada data yang dipilih.")
+            else:
+                st.warning("Data kosong.")
+    else:
+        st.warning("Data kosong atau ID Spreadsheet salah.")
 
+# --- BATAS AKHIR FUNGSI ---
 # --- 11. ROUTING UTAMA ---
 if st.session_state.page == 'landing':
     show_landing_page()
@@ -507,6 +519,7 @@ elif st.session_state.page == 'ioan':
 elif st.session_state.page == 'b2b':
 
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
