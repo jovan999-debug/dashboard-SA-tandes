@@ -35,7 +35,7 @@ def set_background(image_url):
 )
 
 # Opsi 3: Gedung Perkantoran Malam Hari
-url_gambar = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
+url_gambar = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop"
 set_background(url_gambar)
 
 # ==========================================
@@ -500,3 +500,4 @@ elif st.session_state.page == 'ioan':
 elif st.session_state.page == 'b2b':
 
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
