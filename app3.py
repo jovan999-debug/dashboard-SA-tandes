@@ -422,48 +422,55 @@ def show_interactive_pivot():
                     if 'Grand Total' in chart_df.columns:
                         chart_df = chart_df.drop(columns=['Grand Total'])
                         
-                    # 2. Buat Grafik menggunakan Plotly Express
+                    # 2. Tombol Pilihan Jenis Grafik
                     if not chart_df.empty:
+                        # Reset index agar 'Bulan' atau 'Nama' bisa dibaca sebagai sumbu X
                         chart_data_clean = chart_df.reset_index()
                         x_axis_name = chart_data_clean.columns[0]
                         
-                        if len(chart_df.columns) == 1:
-                            y_axis_name = chart_df.columns[0]
-                            fig = px.bar(
-                                chart_data_clean, 
-                                x=x_axis_name, 
-                                y=y_axis_name,
-                                title=f"Grafik {agg_func} {values} per {x_axis_name}",
-                                text_auto=True, 
-                                color=y_axis_name 
-                            )
-                        else:
-                            chart_melted = chart_data_clean.melt(id_vars=x_axis_name, var_name='Kategori', value_name='Jumlah')
-                            fig = px.bar(
-                                chart_melted,
-                                x=x_axis_name,
-                                y='Jumlah',
-                                color='Kategori', 
-                                title=f"Grafik {agg_func} {values} per {x_axis_name}",
-                                text_auto=True,
-                                barmode='group' 
-                            )
+                        # --- FITUR SWITCH GRAFIK ---
+                        jenis_grafik = st.radio(
+                            "Tampilan Grafik:", 
+                            ["📊 Bar Chart (Perbandingan)", "📈 Line Chart (Tren Waktu)", "🍩 Pie Chart (Proporsi)"], 
+                            horizontal=True
+                        )
                         
-                        st.plotly_chart(fig, use_container_width=True)
+                        # --- LOGIKA PEMBUATAN GRAFIK ---
+                        if jenis_grafik == "📊 Bar Chart (Perbandingan)":
+                            # (Kode Lama: Bar Chart)
+                            if len(chart_df.columns) == 1:
+                                y_axis_name = chart_df.columns[0]
+                                fig = px.bar(chart_data_clean, x=x_axis_name, y=y_axis_name, text_auto=True, color=y_axis_name, title=f"Perbandingan {values} per {x_axis_name}")
+                            else:
+                                chart_melted = chart_data_clean.melt(id_vars=x_axis_name, var_name='Kategori', value_name='Jumlah')
+                                fig = px.bar(chart_melted, x=x_axis_name, y='Jumlah', color='Kategori', text_auto=True, barmode='group', title=f"Perbandingan {values} per {x_axis_name}")
+
+                        elif jenis_grafik == "📈 Line Chart (Tren Waktu)":
+                            # (Kode Baru: Line Chart - Cocok untuk Tanggal/Bulan)
+                            if len(chart_df.columns) == 1:
+                                y_axis_name = chart_df.columns[0]
+                                fig = px.line(chart_data_clean, x=x_axis_name, y=y_axis_name, markers=True, title=f"Tren {values} per {x_axis_name}")
+                                fig.update_traces(textposition="bottom right")
+                            else:
+                                chart_melted = chart_data_clean.melt(id_vars=x_axis_name, var_name='Kategori', value_name='Jumlah')
+                                fig = px.line(chart_melted, x=x_axis_name, y='Jumlah', color='Kategori', markers=True, title=f"Tren {values} per {x_axis_name}")
+
+                        elif jenis_grafik == "🍩 Pie Chart (Proporsi)":
+                            # (Kode Baru: Pie Chart - Cocok untuk lihat persentase)
+                            # Pie chart hanya bisa membaca 1 kolom nilai total
+                            if len(chart_df.columns) == 1:
+                                y_axis_name = chart_df.columns[0]
+                                fig = px.pie(chart_data_clean, names=x_axis_name, values=y_axis_name, title=f"Persentase {values} berdasarkan {x_axis_name}", hole=0.4)
+                            else:
+                                st.warning("⚠️ Pie Chart hanya bisa digunakan jika tidak ada kolom pembanding (Cols). Silakan kosongkan pilihan '2. Pilih Kolom' di pengaturan pivot.")
+                                fig = None
+
+                        # Tampilkan Grafik
+                        if fig:
+                            st.plotly_chart(fig, use_container_width=True)
+                            
                     else:
                         st.warning("Data tidak cukup untuk membuat grafik.")
-
-                except Exception as e:
-                    st.error(f"Gagal memproses data: {e}")
-            else:
-                st.info("👈 Silakan pilih minimal satu 'Baris (Rows)' di menu pengaturan.")
-        else:
-            if kolom_filter != "- Tidak Ada -":
-                st.warning("⚠️ Belum ada data yang dipilih.")
-            else:
-                st.warning("Data kosong.")
-    else:
-        st.warning("Data kosong atau ID Spreadsheet salah.")
 
 # --- 11. ROUTING UTAMA ---
 if st.session_state.page == 'landing':
@@ -500,5 +507,6 @@ elif st.session_state.page == 'ioan':
 elif st.session_state.page == 'b2b':
 
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
