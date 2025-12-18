@@ -14,6 +14,30 @@ st.set_page_config(
     page_icon="🚀"
 )
 
+def set_background(image_url):
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("{image_url}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        /* Membuat container agak transparan biar tulisan terbaca */
+        [data-testid="stHeader"] {{
+            background-color: rgba(0,0,0,0);
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+)
+
+# Opsi 3: Gedung Perkantoran Malam Hari
+url_gambar = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
+set_background(url_gambar)
+
 # ==========================================
 #  KONFIGURASI GOOGLE SHEET
 # ==========================================
@@ -474,4 +498,5 @@ elif st.session_state.page == 'ioan':
     show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
 
 elif st.session_state.page == 'b2b':
+
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
