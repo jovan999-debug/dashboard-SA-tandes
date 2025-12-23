@@ -237,7 +237,7 @@ def show_teknisi_detail(jenis, kolom_start, kolom_end):
     else:
         st.warning("Data teknisi kosong.")
 
-# --- 10. HALAMAN: DASHBOARD STANDAR ---
+# --- 10. HALAMAN: DASHBOARD STANDAR (UPDATE LEBAR KOLOM "NO") ---
 def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_kunci="SCORE", back_to='landing'):
     # Logika Tombol Kembali
     if back_to == 'landing':
@@ -253,6 +253,12 @@ def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_ku
         df = load_data(target_sheet_id, nama_tab, range_khusus)
 
     if not df.empty:
+        # Konfigurasi agar kolom "NO" menjadi sempit (small)
+        # Kita siapkan config-nya di sini agar bisa dipakai di kedua kondisi if/else di bawah
+        config_kolom = {
+            "NO": st.column_config.Column(width="small")
+        }
+
         if kolom_kunci in df.columns:
             df_display = df.copy() 
             df_display[kolom_kunci] = df_display[kolom_kunci].astype(str).str.replace(',', '.', regex=False)
@@ -260,9 +266,12 @@ def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_ku
             
             styled_df = df_display.style.apply(lambda row: highlight_dynamic(row, kolom_kunci), axis=1)
             styled_df = styled_df.format({kolom_kunci: "{:.2f}"})
-            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            
+            # Tampilkan dengan config lebar kolom
+            st.dataframe(styled_df, use_container_width=True, hide_index=True, column_config=config_kolom)
         else:
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            # Tampilkan dengan config lebar kolom
+            st.dataframe(df, use_container_width=True, hide_index=True, column_config=config_kolom)
     else:
         st.warning(f"Data tidak ditemukan di tab: {nama_tab}")
 
@@ -454,5 +463,6 @@ elif st.session_state.page == 'ioan_tambahan':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
