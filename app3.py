@@ -209,14 +209,12 @@ def show_ioan_menu_pilihan():
     
     c1, c2 = st.columns(2)
     with c1:
-        st.info("DATA UTAMA (A1:K29)")
-        if st.button("Performansi SLA IOAN Utama", use_container_width=True):
+        if st.button("Performansi SLA Imbal jasa IOAN", use_container_width=True):
             go_to('ioan') # Ke Dashboard Lama
             st.rerun()
             
     with c2:
-        st.success("DATA TAMBAHAN (M9:Q25)")
-        if st.button("Performansi IOAN Tambahan", use_container_width=True):
+        if st.button("Performansi MSA-WSA IOAN", use_container_width=True):
             go_to('ioan_tambahan') # Ke Dashboard Baru
             st.rerun()
 
@@ -451,8 +449,9 @@ elif st.session_state.page == 'ioan':
 
 elif st.session_state.page == 'ioan_tambahan':
     # Dashboard Baru (M9:Q25)
-    show_dashboard("Performansi IOAN (Data Tambahan)", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="M9:Q25", kolom_kunci="SCORE", back_to='ioan_menu')
+    show_dashboard("Performansi MSA-WSA IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="M9:Q25", kolom_kunci="SCORE", back_to='ioan_menu')
 
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
