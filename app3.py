@@ -174,7 +174,7 @@ def show_landing_page():
     with col2:
         st.success("📊 DATA IOAN")
         if st.button("PERFORMANSI IOAN", use_container_width=True):
-            go_to('ioan')
+            go_to('ioan_menu_pilihan') 
             st.rerun()
             
     with col3:
@@ -226,6 +226,24 @@ def show_psb_menu_pilihan():
             go_to('psb_pivot_interaktif')
             st.rerun()
 
+# --- [BARU] 8. HALAMAN: MENU PILIHAN IOAN ---
+def show_ioan_menu_pilihan():
+    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: go_to('landing'))
+    st.title("Pilih Dashboard IOAN")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.info("DATA UTAMA (A1:K29)")
+        if st.button("Performansi SLA IOAN Utama", use_container_width=True):
+            go_to('ioan') # Ke Dashboard Lama
+            st.rerun()
+            
+    with c2:
+        st.success("DATA TAMBAHAN (M9:Q25)")
+        if st.button("Performansi IOAN Tambahan", use_container_width=True):
+            go_to('ioan_tambahan') # Ke Dashboard Baru
+            st.rerun()
+            
 # --- 8. HALAMAN: DETAIL TEKNISI (DENGAN PEMBERSIH NAMA KOLOM) ---
 def show_teknisi_detail(jenis, kolom_start, kolom_end):
     st.button("⬅️ Kembali ke Pilihan Teknisi", on_click=lambda: go_to('teknisi_menu_pilihan'))
@@ -510,13 +528,21 @@ elif st.session_state.page == 'psb_pivot_interaktif':
     # Ini fungsi baru untuk pivot table interaktif
     show_interactive_pivot()
 
-# Routing Lain
+elif st.session_state.page == 'ioan_menu_pilihan':
+    show_ioan_menu_pilihan() # Menampilkan menu pilihan
+
 elif st.session_state.page == 'ioan':
-    show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="A1:K29", kolom_kunci="SCORE")
+    # Dashboard Lama (A1:K29)
+    show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="A1:K29", kolom_kunci="SCORE", back_to='ioan_menu')
 
+elif st.session_state.page == 'ioan_tambahan':
+    # Dashboard Baru (M9:Q25)
+    show_dashboard("Performansi IOAN (Data Tambahan)", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="M9:Q25", kolom_kunci="ACHIEVEMENT", back_to='ioan_menu')
+
+# Routing B2B
 elif st.session_state.page == 'b2b':
-
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
