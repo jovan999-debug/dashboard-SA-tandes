@@ -413,24 +413,29 @@ def show_interactive_pivot():
                     st.subheader(f"📊 Hasil Analisa: {agg_func.upper()} of {values}")
                     st.dataframe(pivot_result, use_container_width=True)
 
-                    # ---------------------------------------------------------
-                    # >>> BAGIAN BARU: VISUALISASI GRAFIK (CHART) <<<
+                   # ---------------------------------------------------------
+                    # >>> BAGIAN VISUALISASI GRAFIK (FIX MULTIINDEX ERROR) <<<
                     # ---------------------------------------------------------
                     st.markdown("### 📈 Visualisasi Grafik")
                     
-                    # 1. Bersihkan Data untuk Grafik (Buang Grand Total agar grafik tidak rancu)
+                    # 1. Bersihkan Data (Buang Grand Total)
                     chart_df = pivot_result.copy()
                     if 'Grand Total' in chart_df.index: 
                         chart_df = chart_df.drop('Grand Total', axis=0)
                     if 'Grand Total' in chart_df.columns: 
                         chart_df = chart_df.drop(columns=['Grand Total'])
-                        
+                    
+                    # [FIX PENTING] Ratakan MultiIndex (Header Bertumpuk) jadi 1 Baris
+                    # Ini obat untuk error "id_vars must be a list of tuples"
+                    if isinstance(chart_df.columns, pd.MultiIndex):
+                        chart_df.columns = [' - '.join(map(str, col)).strip() for col in chart_df.columns.values]
+
                     if not chart_df.empty:
                         # Reset index agar 'Bulan' atau 'Nama' bisa dibaca sebagai sumbu X
                         chart_data_clean = chart_df.reset_index()
                         x_axis_name = chart_data_clean.columns[0]
                         
-                        # --- PILIHAN JENIS GRAFIK (RADIO BUTTON) ---
+                        # --- PILIHAN JENIS GRAFIK ---
                         jenis_grafik = st.radio(
                             "Tampilan Grafik:", 
                             ["📊 Bar Chart (Perbandingan)", "📈 Line Chart (Tren Waktu)", "🍩 Pie Chart (Proporsi)"], 
@@ -463,7 +468,7 @@ def show_interactive_pivot():
                                 y_axis_name = chart_df.columns[0]
                                 fig = px.pie(chart_data_clean, names=x_axis_name, values=y_axis_name, title=f"Persentase {values} berdasarkan {x_axis_name}", hole=0.4)
                             else:
-                                st.warning("⚠️ Pie Chart hanya bisa digunakan jika tidak ada kolom pembanding (Cols). Silakan kosongkan pilihan '2. Pilih Kolom' di pengaturan pivot.")
+                                st.warning("⚠️ Pie Chart sebaiknya hanya digunakan jika TIDAK ADA kolom pembanding (Cols) agar tidak bingung.")
 
                         # TAMPILKAN GRAFIK
                         if fig: 
@@ -471,18 +476,10 @@ def show_interactive_pivot():
                     else:
                         st.warning("Data tidak cukup untuk membuat grafik.")
 
-                # >>> PENTING: INI PENUTUP ERROR YANG TADI HILANG <<<
                 except Exception as e:
                     st.error(f"Gagal memproses data: {e}")
             else:
                 st.info("👈 Silakan pilih minimal satu 'Baris (Rows)' di menu pengaturan.")
-        else:
-            if kolom_filter != "- Tidak Ada -":
-                st.warning("⚠️ Belum ada data yang dipilih.")
-            else:
-                st.warning("Data kosong.")
-    else:
-        st.warning("Data kosong atau ID Spreadsheet salah.")
 
 # --- BATAS AKHIR FUNGSI ---
 # --- 11. ROUTING UTAMA ---
@@ -520,6 +517,7 @@ elif st.session_state.page == 'ioan':
 elif st.session_state.page == 'b2b':
 
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
