@@ -449,9 +449,10 @@ elif st.session_state.page == 'ioan':
 
 elif st.session_state.page == 'ioan_tambahan':
     # Dashboard Baru (M9:Q25)
-    show_dashboard("Performansi MSA-WSA IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="M9:Q25", kolom_kunci="SCORE", back_to='ioan_menu')
+    show_dashboard("Performansi MSA-WSA IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="M9:Q25", kolom_kunci="ACHIEVEMENT", back_to='ioan_menu')
 
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
