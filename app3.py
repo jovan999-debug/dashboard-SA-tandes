@@ -237,7 +237,7 @@ def show_teknisi_detail(jenis, kolom_start, kolom_end):
     else:
         st.warning("Data teknisi kosong.")
 
-# --- 10. HALAMAN: DASHBOARD STANDAR (UPDATE LEBAR KOLOM "NO") ---
+# --- 10. HALAMAN: DASHBOARD STANDAR (UPDATE: SMART RESIZE) ---
 def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_kunci="SCORE", back_to='landing'):
     # Logika Tombol Kembali
     if back_to == 'landing':
@@ -253,10 +253,18 @@ def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_ku
         df = load_data(target_sheet_id, nama_tab, range_khusus)
 
     if not df.empty:
-        # Konfigurasi agar kolom "NO" menjadi sempit (small)
-        # Kita siapkan config-nya di sini agar bisa dipakai di kedua kondisi if/else di bawah
+        # 1. BERSIHKAN NAMA KOLOM (Hapus spasi yang tidak sengaja)
+        # Ini penting! Agar "NO " terbaca sebagai "NO"
+        df.columns = df.columns.str.strip()
+
+        # 2. KONFIGURASI TARIK-ULUR KOLOM
+        # "NO" kita set kecil, "INDIKATOR" kita set besar agar memakan ruang kosong
         config_kolom = {
-            "NO": st.column_config.Column(width="small")
+            "NO": st.column_config.TextColumn("NO", width="small"),
+            "INDIKATOR": st.column_config.TextColumn("INDIKATOR", width="large"),
+            "TARGET": st.column_config.Column(width="medium"),
+            "REALISASI": st.column_config.Column(width="medium"),
+            "ACHIEVEMENT": st.column_config.Column(width="medium")
         }
 
         if kolom_kunci in df.columns:
@@ -267,11 +275,20 @@ def show_dashboard(judul, nama_tab, target_sheet_id, range_khusus=None, kolom_ku
             styled_df = df_display.style.apply(lambda row: highlight_dynamic(row, kolom_kunci), axis=1)
             styled_df = styled_df.format({kolom_kunci: "{:.2f}"})
             
-            # Tampilkan dengan config lebar kolom
-            st.dataframe(styled_df, use_container_width=True, hide_index=True, column_config=config_kolom)
+            # Tampilkan Dataframe
+            st.dataframe(
+                styled_df, 
+                use_container_width=True, 
+                hide_index=True, 
+                column_config=config_kolom
+            )
         else:
-            # Tampilkan dengan config lebar kolom
-            st.dataframe(df, use_container_width=True, hide_index=True, column_config=config_kolom)
+            st.dataframe(
+                df, 
+                use_container_width=True, 
+                hide_index=True, 
+                column_config=config_kolom
+            )
     else:
         st.warning(f"Data tidak ditemukan di tab: {nama_tab}")
 
@@ -463,6 +480,7 @@ elif st.session_state.page == 'ioan_tambahan':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
