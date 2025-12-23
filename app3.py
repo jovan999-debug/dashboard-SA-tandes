@@ -512,11 +512,12 @@ elif st.session_state.page == 'psb_pivot_interaktif':
 
 # Routing Lain
 elif st.session_state.page == 'ioan':
-    show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+    show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, range_khusus="A1:K29", MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
 
 elif st.session_state.page == 'b2b':
 
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
