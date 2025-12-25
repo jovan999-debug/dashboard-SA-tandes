@@ -202,20 +202,29 @@ def show_psb_menu_pilihan():
             go_to('psb_pivot_interaktif')
             st.rerun()
 
-# --- [BARU] 8. HALAMAN: MENU PILIHAN IOAN ---
+# --- [UPDATE] 8. HALAMAN: MENU PILIHAN IOAN (3 MENU) ---
 def show_ioan_menu_pilihan():
     st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: go_to('landing'))
     st.title("Pilih Dashboard IOAN")
     
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
+    
+    # Menu 1: Data Lama (A1:K29)
     with c1:
         if st.button("Performansi SLA Imbal jasa IOAN", use_container_width=True):
-            go_to('ioan') # Ke Dashboard Lama
+            go_to('ioan') 
             st.rerun()
             
+    # Menu 2: Data Kedua (M9:Q25)
     with c2:
         if st.button("Performansi MSA-WSA IOAN", use_container_width=True):
-            go_to('ioan_tambahan') # Ke Dashboard Baru
+            go_to('ioan_tambahan') 
+            st.rerun()
+
+    # Menu 3: Data Baru (T9:Y21)
+    with c3:
+        if st.button("Performansi PI LATEN", use_container_width=True):
+            go_to('ioan_baru_lagi') # Ke Dashboard Baru
             st.rerun()
 
 # --- 9. HALAMAN: DETAIL TEKNISI ---
@@ -448,8 +457,12 @@ elif st.session_state.page == 'ioan':
     show_dashboard("Performansi SLA Imbal Jasa IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="A1:K29", kolom_kunci="SCORE", back_to='ioan_menu')
 
 elif st.session_state.page == 'ioan_tambahan':
-    # Dashboard Baru (M9:Q25)
+    # Dashboard Kedua (M9:Q25)
     show_dashboard("Performansi MSA-WSA IOAN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="M9:Q25", kolom_kunci="ACHIEVEMENT", back_to='ioan_menu')
+
+elif st.session_state.page == 'ioan_baru_lagi':
+    # Dashboard Ketiga (T9:Y21) -> INI YANG BARU
+    show_dashboard("PI LATEN", TAB_NAME_IOAN, MAIN_SPREADSHEET_ID, range_khusus="T9:Y21", kolom_kunci="ACHIEVEMENT", back_to='ioan_menu')
 
 # Routing B2B
 elif st.session_state.page == 'b2b':
