@@ -146,7 +146,7 @@ def go_to(page_name):
 
 # --- 5. HALAMAN: LANDING PAGE ---
 def show_landing_page():
-    st.markdown("<h1 style='text-align: center;'>Monitoring Dashboard Performansi SA TANDES</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>Dashboard Monitoring Performansi SA TANDES</h1>", unsafe_allow_html=True)
     st.markdown("---")
     
     col1, col2, col3, col4 = st.columns(4)
@@ -478,6 +478,7 @@ elif st.session_state.page == 'ioan_baru_lagi':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
