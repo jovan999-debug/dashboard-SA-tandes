@@ -20,7 +20,7 @@ hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            header {visibility: hidden;}
+            /* header {visibility: hidden;}  <-- BARIS INI SAYA HAPUS/KOMENTARI */
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -479,6 +479,7 @@ elif st.session_state.page == 'ioan_baru_lagi':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
