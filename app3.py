@@ -39,6 +39,23 @@ def set_background(image_url):
         [data-testid="stHeader"] {{
             background-color: rgba(0,0,0,0);
         }}
+        
+        /* ============================================================ */
+        /* [TAMBAHAN BARU] PAKSA TEKS JADI PUTIH (FIX ANDROID)          */
+        /* Agar tulisan tidak jadi abu-abu/hitam saat dibuka di APK     */
+        /* ============================================================ */
+        h1, h2, h3, h4, h5, h6, p, li, span {{
+            color: #FFFFFF !important;
+            text-shadow: 1px 1px 2px black;
+        }}
+        
+        /* Pengecualian: Teks di dalam tombol biarkan default */
+        button p, button span {{
+            color: inherit !important;
+            text-shadow: none !important;
+        }}
+        /* ============================================================ */
+        
         </style>
         """,
         unsafe_allow_html=True
@@ -478,6 +495,7 @@ elif st.session_state.page == 'ioan_baru_lagi':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
