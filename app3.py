@@ -7,38 +7,23 @@ import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# --- 1. KONFIGURASI HALAMAN ---
+# --- 1. KONFIGURASI HALAMAN (DIUPDATE UNTUK TAMPILAN APP) ---
 st.set_page_config(
     page_title="Dashboard Teknisi & Performansi", 
     layout="wide",
     page_icon="🚀",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed"  # TAMBAHAN: Agar menu samping tertutup otomatis di HP
 )
 
-# --- [UPDATED] CSS UNTUK MENGHILANGKAN BADGE & FOOTER ---
-# Kode ini menggantikan CSS lama Anda agar badge merah benar-benar hilang
-hide_footer_style = """
-    <style>
-    /* 1. Menghilangkan tulisan 'Made with Streamlit' di bawah */
-    footer {
-        visibility: hidden;
-        height: 0px;
-        display: none;
-    }
-    /* 2. Menghilangkan badge 'Hosted with Streamlit' & Avatar (Pojok Kanan Bawah) */
-    [data-testid="stStatusWidget"] {
-        visibility: hidden;
-        height: 0px;
-        display: none;
-    }
-    /* 3. Memastikan Tombol Menu (Garis Tiga) TETAP MUNCUL untuk Filter */
-    header {
-        visibility: visible;
-    }
-    </style>
-"""
-st.markdown(hide_footer_style, unsafe_allow_html=True)
-# ---------------------------------------------------------
+# --- HIDE STREAMLIT STYLE (DIPERBAIKI) ---
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+# -----------------------------------------------------------------------
 
 def set_background(image_url):
     st.markdown(
@@ -161,7 +146,7 @@ def go_to(page_name):
 
 # --- 5. HALAMAN: LANDING PAGE ---
 def show_landing_page():
-    st.markdown("<h1 style='text-align: center;'>Dashboard Monitoring Performansi SA TANDES</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>Monitoring Dashboard Performansi SA TANDES</h1>", unsafe_allow_html=True)
     st.markdown("---")
     
     col1, col2, col3, col4 = st.columns(4)
@@ -174,6 +159,7 @@ def show_landing_page():
             
     with col2:
         st.success("📊 DATA IOAN")
+        # [UPDATE] Tombol ini sekarang ke menu pilihan, bukan langsung dashboard
         if st.button("PERFORMANSI IOAN", use_container_width=True):
             go_to('ioan_menu_pilihan') 
             st.rerun()
@@ -227,7 +213,7 @@ def show_psb_menu_pilihan():
             go_to('psb_pivot_interaktif')
             st.rerun()
 
-# --- 8. HALAMAN: MENU PILIHAN IOAN (3 MENU) ---
+# --- [UPDATE] 8. HALAMAN: MENU PILIHAN IOAN (3 MENU) ---
 def show_ioan_menu_pilihan():
     st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: go_to('landing'))
     st.title("Pilih Dashboard IOAN")
@@ -492,6 +478,7 @@ elif st.session_state.page == 'ioan_baru_lagi':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
