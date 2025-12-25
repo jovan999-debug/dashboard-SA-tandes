@@ -7,12 +7,24 @@ import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# --- 1. KONFIGURASI HALAMAN ---
+# --- 1. KONFIGURASI HALAMAN (DIUPDATE UNTUK TAMPILAN APP) ---
 st.set_page_config(
     page_title="Dashboard Teknisi & Performansi", 
     layout="wide",
-    page_icon="🚀"
+    page_icon="🚀",
+    initial_sidebar_state="collapsed"  # TAMBAHAN: Agar menu samping tertutup otomatis di HP
 )
+
+# --- TAMBAHAN: HIDE STREAMLIT STYLE (Agar terlihat seperti App Native) ---
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+# -----------------------------------------------------------------------
 
 def set_background(image_url):
     st.markdown(
@@ -467,6 +479,7 @@ elif st.session_state.page == 'ioan_baru_lagi':
 # Routing B2B
 elif st.session_state.page == 'b2b':
     show_dashboard("Performansi B2B", TAB_NAME_B2B, MAIN_SPREADSHEET_ID, kolom_kunci="SCORE")
+
 
 
 
